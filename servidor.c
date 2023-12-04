@@ -542,10 +542,8 @@ void serverUDP(int s, struct sockaddr_in clientaddr_in)
 			printf("Unable to get response from");
 			exit(1);
 		}
-		else
-		{
-			printf("recvfrom: %s", buf);
-		}
+
+		printf("recvfrom: %s", buf);
 	}
 	// ##############################
 }
