@@ -49,6 +49,7 @@ char *argv[];
 	int addrlen, i, j, errcode;
     /* This example uses TAM_BUFFER byte messages. */
 	char buf[TAM_BUFFER];
+	char auxBuf[TAM_BUFFER];
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage:  %s <remote host>\n", argv[0]);
@@ -145,12 +146,7 @@ char *argv[];
 			exit(1);
 		}
 	
-		// Salir del bucle si el comando es "exit"
-        if (strcmp(buf, "adios\r\n") == 0) {
-            printf("Saliendo del programa.\n");
-            break;
-        }
-
+		strcpy(auxBuf,buf);
 		// limpiar buffer
 		memset(buf, 0, TAM_BUFFER);
 
@@ -194,6 +190,12 @@ char *argv[];
 	
 		// limpiar buffer
 		memset(buf, 0, TAM_BUFFER);
+
+		// Salir del bucle si el comando es "exit"
+        if (strcmp(auxBuf, "adios\r\n") == 0) {
+            printf("Saliendo del programa.\n");
+            break;
+        }
 
 	}
 

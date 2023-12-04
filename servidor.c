@@ -354,8 +354,10 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 	int option = 0;
 	int maxTry = MAXTRY;
 	int numR = 0;
-	int n1 = 2, n2 = 3;
+	int n1 = rand() % 11, n2 = rand() % 11;
 	int result = n1 * n2;
+	int flag = 0;
+
 	while (len = recv(s, buf, TAM_BUFFER, 0)) { 
 		if (len == -1) errout(hostname); /* error from recv */
 			/* The reason this while loop exists is that there
@@ -393,6 +395,10 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 			char *numR_str = strtok(NULL, "\r\n");
 			numR = atoi(numR_str);
 			option = 2;
+        }else if (strcmp(buf, "+\r\n") == 0) {
+			option = 3;
+        }else if (strcmp(buf, "adios\r\n") == 0) {
+			option = 4;
         }else{
 			option = 0;
 		}
@@ -400,24 +406,42 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 		switch (option) {
 			case 1://command hola
 				snprintf(response, sizeof(response), "250 cuanto es %d x %d?#%d\r\n", n1, n2, maxTry);
+				flag = 1;
 				break;
 			case 2://command respuesta
 
-				if(maxTry == 0){
-					snprintf(response, sizeof(response), "500 u have no more tries, use command +\r\n");
-				}else{
-					if(numR == result){
-						maxTry = MAXTRY;
-						snprintf(response, sizeof(response), "350 acierto\r\n");
-					}else if(numR > result){
-						maxTry--;
-						snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
+				if(flag == 1){
+					if(maxTry == 0){
+						snprintf(response, sizeof(response), "500 no te quedan intentos o has acertado la ultima pregunta, usa el comando +\r\n");
 					}else{
-						maxTry--;
-						snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
+						if(numR == result){
+							maxTry = 0;
+							snprintf(response, sizeof(response), "350 acierto\r\n");
+						}else if(numR > result){
+							maxTry--;
+							snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
+						}else{
+							maxTry--;
+							snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
+						}
 					}
+				}else{
+					snprintf(response, sizeof(response), "500 tienes que saludar primero, usa el comando hola\r\n");
 				}
-
+				break;
+			case 3://command +
+				if(flag == 1){
+					maxTry = MAXTRY;
+					n1 = rand() % 11;
+					n2 = rand() % 11;
+					result = n1 * n2;
+					snprintf(response, sizeof(response), "250 cuanto es %d x %d?#%d\r\n", n1, n2, maxTry);
+				}else{
+					snprintf(response, sizeof(response), "500 tienes que saludar primero, usa el comando hola\r\n");
+				}
+				break;
+			case 4://command adios
+				snprintf(response, sizeof(response), "221 cerrando el servicio\r\n");
 				break;
 			default:
 				strcpy(response,"500 Syntax Error\r\n");
