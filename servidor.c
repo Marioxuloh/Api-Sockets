@@ -410,11 +410,11 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 
 		char *command = strtok(buf, " ");
 
-		if (strcmp(buf, "hola\r\n") == 0)
+		if (strcmp(buf, "HOLA\r\n") == 0)
 		{
 			option = 1;
 		}
-		else if (strcmp(command, "respuesta") == 0)
+		else if (strcmp(command, "RESPUESTA") == 0)
 		{
 			char *numR_str = strtok(NULL, "\r\n");
 			numR = atoi(numR_str);
@@ -424,7 +424,7 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 		{
 			option = 3;
 		}
-		else if (strcmp(buf, "adios\r\n") == 0)
+		else if (strcmp(buf, "ADIOS\r\n") == 0)
 		{
 			option = 4;
 		}
@@ -443,27 +443,27 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 
 			if (flag == 1)
 			{
+
 				if (maxTry == 0)
 				{
 					snprintf(response, sizeof(response), "375 FALLO\r\n");
 				}
+				if (numR == result)
+				{
+					maxTry = 0;
+					snprintf(response, sizeof(response), "350 acierto\r\n");
+				}
+				else if (numR > result)
+				{
+
+					maxTry--;
+					snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
+				}
 				else
 				{
-					if (numR == result)
-					{
-						maxTry = 0;
-						snprintf(response, sizeof(response), "350 acierto\r\n");
-					}
-					else if (numR > result)
-					{
-						maxTry--;
-						snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
-					}
-					else
-					{
-						maxTry--;
-						snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
-					}
+
+					maxTry--;
+					snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
 				}
 			}
 			else
