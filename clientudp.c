@@ -28,12 +28,12 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <ctype.h>
 
 extern int errno;
 
 #define ADDRNOTFOUND 0xffffffff /* value returned for unknown host */
 #define RETRIES 5				/* number of times to retry before givin up */
-#define BUFFERSIZE 1024			/* maximum size of packets to be received */
 #define PUERTO 17289
 #define TIMEOUT 6
 #define MAXHOST 512
@@ -47,7 +47,7 @@ void handler()
 {
 	printf("Alarma recibida \n");
 }
-
+void strtrim(char *str);
 /*
  *			M A I N
  *
@@ -82,9 +82,11 @@ char *argv[];
 
 	if (argc != 3)
 	{
-		fprintf(stderr, "Usage:  %s <nameserver> <target>\n", argv[0]);
+		fprintf(stderr, "Usage:  %s <remote host> <route to .txt>\n", argv[0]);
 		exit(1);
 	}
+
+	char *route_txt = argv[2];
 
 	/* Create the socket. */
 	s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -169,26 +171,68 @@ char *argv[];
 		exit(1);
 	}
 
+	// Abrir el archivo
+	FILE *archivo = fopen(route_txt, "r");
+	if (archivo == NULL)
+	{
+		perror("Error al abrir el archivo");
+		return 1;
+	}
+
 	// Escribir logica patatacaliente
 	// ##############################
-	n_retry = RETRIES;
-	while (1)
+	char response[TAM_BUFFER];
+	while (fgets(buf, sizeof(buf), archivo) != NULL)
 	{
 
 		// Leer comando desde la terminal
-		printf("Ingrese un comando: ");
-		fgets(buf, TAM_BUFFER - 2, stdin); // Dejar espacio para CR-LF, leemos por teclado y dejamos dos carcateres libres \r\n
+		// printf("Ingrese un comando: ");
+		// fgets(buf, TAM_BUFFER - 2, stdin); // Dejar espacio para CR-LF, leemos por teclado y dejamos dos carcateres libres \r\n
 
 		buf[strcspn(buf, "\n")] = '\0';
 
+		// Evitar líneas vacías
+		strtrim(buf);
+
 		strcat(buf, "\r\n");
 
-		if (sendto(s, buf, strlen(buf), 0, (struct sockaddr *)&servaddr_in, sizeof(struct sockaddr_in)) == -1)
+		if (sendto(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr_in, addrlen) == -1)
 		{
 			perror(argv[0]);
 			fprintf(stderr, "%s: unable to send request\n", argv[0]);
 			exit(1);
 		}
+
+		if (recvfrom(s, response, sizeof(response), 0, (struct sockaddr *)&servaddr_in, &addrlen) == -1)
+		{
+			printf("Unable to get response from");
+			exit(1);
+		}
+		// printf("%s", response); // recibimos msge y printeamos
+		if (strcmp(buf, "ADIOS\r\n") == 0)
+		{
+			printf("Saliendo del programa.\n");
+			break;
+		}
+		memset(buf, 0, TAM_BUFFER);
+		memset(response, 0, TAM_BUFFER);
 	}
 	// ##############################
+	time(&timevar);
+	printf("All done at %s", (char *)ctime(&timevar));
+}
+
+// Función para eliminar espacios en blanco al principio y al final de la cadena
+void strtrim(char *str)
+{
+	int end = strlen(str) - 1;
+
+	// Encuentra el índice del último caracter no espaciado
+	while (end >= 0 && isspace(str[end]))
+	{
+		end--;
+	}
+
+	// Establece el nuevo final de la cadena
+	str[end + 1] = '\0';
 }

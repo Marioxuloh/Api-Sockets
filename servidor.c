@@ -20,7 +20,6 @@
 
 #define PUERTO 17289
 #define ADDRNOTFOUND 0xffffffff /* return address for unfound host */
-#define BUFFERSIZE 516			/* maximum size of packets to be received */
 #define TAM_BUFFER 516
 #define MAXHOST 128
 #define MAXTRY 4
@@ -66,6 +65,24 @@ char *argv[];
 	char buffer[TAM_BUFFER]; /* buffer for packets to be read into */
 
 	struct sigaction vec;
+
+	// crear peticiones.log
+	FILE *archivo;
+	// cerramos tambien el peticiones.log
+	long timevar;
+	time(&timevar);
+	// Intentar abrir el archivo en modo de escritura al final ("w")
+	archivo = fopen("peticiones.log", "w");
+
+	// Verificar si se abrió correctamente
+	if (archivo == NULL)
+	{
+		printf("Error al abrir el archivo\n");
+		exit(1); // Terminar el programa con un código de error
+	}
+	fprintf(archivo, "Opening server at %s\n", (char *)ctime(&timevar));
+	fclose(archivo);
+	// fprintf(archivo, "\nINICIO SERVIDOR\n");
 
 	/* Create the listen socket. */
 	ls_TCP = socket(AF_INET, SOCK_STREAM, 0);
@@ -262,7 +279,19 @@ char *argv[];
 		/* Cerramos los sockets UDP y TCP */
 		close(ls_TCP);
 		close(s_UDP);
+		// cerramos tambien el peticiones.log
+		time(&timevar);
+		// Intentar abrir el archivo en modo de escritura al final ("w")
+		archivo = fopen("peticiones.log", "a+");
 
+		// Verificar si se abrió correctamente
+		if (archivo == NULL)
+		{
+			printf("Error al abrir el archivo\n");
+			exit(1); // Terminar el programa con un código de error
+		}
+		fprintf(archivo, "Closing server at %s", (char *)ctime(&timevar));
+		fclose(archivo);
 		printf("\nFin de programa servidor!\n");
 
 	default: /* Parent process comes here. */
@@ -298,7 +327,18 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 	 * was returned by the accept call, in the main
 	 * daemon loop above.
 	 */
+	// crear peticiones.log
+	FILE *archivo;
 
+	// Intentar abrir el archivo en modo de escritura al final ("w")
+	archivo = fopen("peticiones.log", "a+");
+
+	// Verificar si se abrió correctamente
+	if (archivo == NULL)
+	{
+		printf("Error al abrir el archivo\n");
+		exit(1); // Terminar el programa con un código de error
+	}
 	status = getnameinfo((struct sockaddr *)&clientaddr_in, sizeof(clientaddr_in),
 						 hostname, MAXHOST, NULL, 0, 0);
 	if (status)
@@ -320,8 +360,8 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 	 * that this program could easily be ported to a host
 	 * that does require it.
 	 */
-	printf("Startup from %s port %u at %s",
-		   hostname, ntohs(clientaddr_in.sin_port), (char *)ctime(&timevar));
+	fprintf(archivo, "Startup TCP from %s port %u at %s", hostname, ntohs(clientaddr_in.sin_port), (char *)ctime(&timevar));
+	printf("Startup TCP from %s port %u at %s", hostname, ntohs(clientaddr_in.sin_port), (char *)ctime(&timevar));
 
 	/* Set the socket for a lingering, graceful close.
 	 * This will cause a final close of this socket to wait until all of the
@@ -387,7 +427,7 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 		 */
 
 		// LA LOGICA DEL SERVIDOR PARA HACER LA PATATA CALIENTE, utilizando buf como mensaje enviado por el clientcp y ya responder en base a eso
-
+		fprintf(archivo, "(TCP)message from %s on port %u: %s", hostname, ntohs(clientaddr_in.sin_port), buf);
 		char *command = strtok(buf, " ");
 
 		if (strcmp(buf, "HOLA\r\n") == 0)
@@ -428,22 +468,25 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 				{
 					snprintf(response, sizeof(response), "375 FALLO\r\n");
 				}
-				if (numR == result)
-				{
-					maxTry = 0;
-					snprintf(response, sizeof(response), "350 acierto\r\n");
-				}
-				else if (numR > result)
-				{
-
-					maxTry--;
-					snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
-				}
 				else
 				{
+					if (numR == result)
+					{
+						maxTry = 0;
+						snprintf(response, sizeof(response), "350 acierto\r\n");
+					}
+					else if (numR > result)
+					{
 
-					maxTry--;
-					snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
+						maxTry--;
+						snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
+					}
+					else
+					{
+
+						maxTry--;
+						snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
+					}
 				}
 			}
 			else
@@ -473,6 +516,7 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 			break;
 		}
 
+		fprintf(archivo, "(TCP)response to %s on port %u: %s", hostname, ntohs(clientaddr_in.sin_port), response);
 		/* Send a response back to the client. */
 		if (send(s, response, TAM_BUFFER, 0) != TAM_BUFFER)
 			errout(hostname);
@@ -498,8 +542,9 @@ void serverTCP(int s, struct sockaddr_in clientaddr_in)
 	 * that this program could easily be ported to a host
 	 * that does require it.
 	 */
-	printf("Completed %s port %u, %d requests, at %s\n",
-		   hostname, ntohs(clientaddr_in.sin_port), reqcnt, (char *)ctime(&timevar));
+	fprintf(archivo, "Completed TCP %s port %u, %d requests, at %s\n", hostname, ntohs(clientaddr_in.sin_port), reqcnt, (char *)ctime(&timevar));
+	printf("Completed TCP %s port %u, %d requests, at %s\n", hostname, ntohs(clientaddr_in.sin_port), reqcnt, (char *)ctime(&timevar));
+	fclose(archivo);
 }
 
 /*
@@ -523,27 +568,163 @@ void errout(char *hostname)
  */
 void serverUDP(int s, struct sockaddr_in clientaddr_in)
 {
-	struct in_addr reqaddr; /* for requested host's address */
-	struct hostent *hp;		/* pointer to host info for requested host */
-	int nc, errcode;
-
-	struct addrinfo hints, *res;
-
-	int addrlen;
-
 	char buf[TAM_BUFFER];
+	socklen_t addrlen = sizeof(struct sockaddr_in);
+
+	// VARIABLES DE CONTROL PARA PATATA CALIENTE
+	char response[TAM_BUFFER];
+	int option = 0;
+	int maxTry = MAXTRY;
+	int numR = 0;
+	int n1 = rand() % 11, n2 = rand() % 11;
+	int result = n1 * n2;
+	int flag = 0;
+	long timevar;
+	int reqcnt = 0;
+	char hostname[MAXHOST];
+
+	// crear peticiones.log
+	FILE *archivo;
+
+	// Intentar abrir el archivo en modo de escritura al final ("w")
+	archivo = fopen("peticiones.log", "a+");
+
+	// Verificar si se abrió correctamente
+	if (archivo == NULL)
+	{
+		printf("Error al abrir el archivo\n");
+		exit(1); // Terminar el programa con un código de error
+	}
+
+	if (recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&clientaddr_in, &addrlen) == -1)
+	{
+		printf("Unable to get response from");
+		exit(1);
+	}
+	getnameinfo((struct sockaddr *)&clientaddr_in, sizeof(clientaddr_in), hostname, MAXHOST, NULL, 0, 0);
+	time(&timevar);
+	fprintf(archivo, "Startup UDP from %s on port %u at %s", hostname, ntohs(clientaddr_in.sin_port), (char *)ctime(&timevar));
+	printf("Startup UDP from %s on port %u at %s", hostname, ntohs(clientaddr_in.sin_port), (char *)ctime(&timevar));
 
 	// escribir logica de patatcaliente
 	// ##############################
 	while (1)
 	{
-		if (recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&clientaddr_in, addrlen) == -1)
+		fprintf(archivo, "(UDP)message from %s on port %u: %s", hostname, ntohs(clientaddr_in.sin_port), buf);
+		reqcnt++;
+
+		char *command = strtok(buf, " ");
+
+		if (strcmp(buf, "HOLA\r\n") == 0)
+		{
+			option = 1;
+		}
+		else if (strcmp(command, "RESPUESTA") == 0)
+		{
+			char *numR_str = strtok(NULL, "\r\n");
+			numR = atoi(numR_str);
+			option = 2;
+		}
+		else if (strcmp(buf, "+\r\n") == 0)
+		{
+			option = 3;
+		}
+		else if (strcmp(buf, "ADIOS\r\n") == 0)
+		{
+			option = 4;
+		}
+		else
+		{
+			option = 0;
+		}
+		switch (option)
+		{
+		case 1: // command hola
+			snprintf(response, sizeof(response), "250 cuanto es %d x %d?#%d\r\n", n1, n2, maxTry);
+			flag = 1;
+			break;
+		case 2: // command respuesta
+
+			if (flag == 1)
+			{
+
+				if (maxTry == 0)
+				{
+					snprintf(response, sizeof(response), "375 FALLO\r\n");
+				}
+				else
+				{
+					if (numR == result)
+					{
+						maxTry = 0;
+						snprintf(response, sizeof(response), "350 acierto\r\n");
+					}
+					else if (numR > result)
+					{
+
+						maxTry--;
+						snprintf(response, sizeof(response), "250 menor#%d\r\n", maxTry);
+					}
+					else
+					{
+
+						maxTry--;
+						snprintf(response, sizeof(response), "250 mayor#%d\r\n", maxTry);
+					}
+				}
+			}
+			else
+			{
+				snprintf(response, sizeof(response), "500 tienes que saludar primero, usa el comando hola\r\n");
+			}
+			break;
+		case 3: // command +
+			if (flag == 1)
+			{
+				maxTry = MAXTRY;
+				n1 = rand() % 11;
+				n2 = rand() % 11;
+				result = n1 * n2;
+				snprintf(response, sizeof(response), "250 cuanto es %d x %d?#%d\r\n", n1, n2, maxTry);
+			}
+			else
+			{
+				snprintf(response, sizeof(response), "500 tienes que saludar primero, usa el comando hola\r\n");
+			}
+			break;
+		case 4: // command adios
+			snprintf(response, sizeof(response), "221 cerrando el servicio\r\n");
+			break;
+		default:
+			strcpy(response, "500 Syntax Error\r\n");
+			break;
+		}
+
+		fprintf(archivo, "(UDP)response to %s on port %u: %s", hostname, ntohs(clientaddr_in.sin_port), response);
+
+		if (sendto(s, response, sizeof(response), 0, (struct sockaddr *)&clientaddr_in, addrlen) == -1)
+		{
+			perror("serverUDP");
+			printf("Unable to send response");
+			exit(1);
+		}
+
+		if (strcmp(response, "221 cerrando el servicio\r\n") == 0)
+		{
+			break;
+		}
+
+		memset(response, 0, TAM_BUFFER);
+		memset(buf, 0, TAM_BUFFER);
+
+		if (recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&clientaddr_in, &addrlen) == -1)
 		{
 			printf("Unable to get response from");
 			exit(1);
 		}
-
-		printf("recvfrom: %s", buf);
 	}
 	// ##############################
+	fprintf(archivo, "Completed UDP %s on port %u, %d requests, at %s\n", hostname, ntohs(clientaddr_in.sin_port), reqcnt, (char *)ctime(&timevar));
+	printf("Completed UDP %s on port %u, %d requests, at %s\n", hostname, ntohs(clientaddr_in.sin_port), reqcnt, (char *)ctime(&timevar));
+	fclose(archivo);
 }

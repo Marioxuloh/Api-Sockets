@@ -213,7 +213,7 @@ char *argv[];
 			i += j;
 		}
 
-		printf("%s\n", buf);
+		// printf("%s", buf);
 
 		// limpiar buffer
 		memset(buf, 0, TAM_BUFFER);
