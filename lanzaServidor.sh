@@ -1,12 +1,16 @@
-# lanzaServidor.sh
-# Lanza el servidor que es un daemon y varios clientes
-# las ordenes est�n en un fichero que se pasa como tercer par�metro
+#!/bin/bash
+
+# Fichero: servidor.c
+# Autores:
+# Mario Sánchez López DNI 70913738T
+# Javier Cabo Correa DNI 70959954D
+
 ./servidor
-./cliente nogal TCP /ordenes/ordenes.txt &
-./cliente nogal TCP /ordenes/ordenes1.txt &
-./cliente nogal TCP /ordenes/ordenes2.txt &
-./cliente nogal UDP ordenes.txt &
-./cliente nogal UDP ordenes1.txt &
-./cliente nogal UDP ordenes2.txt &
+./cliente localhost TCP ./ordenes/ordenes.txt &
+./cliente localhost TCP ./ordenes/ordenes1.txt &
+./cliente localhost TCP ./ordenes/ordenes2.txt &
+./cliente localhost UDP ./ordenes/ordenes.txt &
+./cliente localhost UDP ./ordenes/ordenes1.txt &
+./cliente localhost UDP ./ordenes/ordenes2.txt &
 
  

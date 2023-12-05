@@ -1,10 +1,17 @@
 /*
- *          		S E R V I D O R
- *
- *	This is an example program that demonstrates the use of
- *	sockets TCP and UDP as an IPC mechanism.
- *
- */
+
+** Fichero: servidor.c
+** Autores:
+** Mario Sánchez López DNI 70913738T
+** Javier Cabo Correa DNI 70959954D
+*
+**
+*          		S E R V I D O R
+*
+*	This is an example program that demonstrates the use of
+*	sockets TCP and UDP as an IPC mechanism.
+*
+*/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/errno.h>

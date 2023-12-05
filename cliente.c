@@ -1,3 +1,11 @@
+/*
+
+** Fichero: cliente.c
+** Autores:
+** Mario Sánchez López DNI 70913738T
+** Javier Cabo Correa DNI 70959954D
+*/
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/errno.h>
