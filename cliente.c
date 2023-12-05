@@ -33,7 +33,6 @@ int main(argc, argv)
 int argc;
 char *argv[];
 {
-
 	if (argc != 4)
 	{
 		fprintf(stderr, "Usage:  %s <remote host> <protocol> <route to .txt>\n", argv[0]);
@@ -250,13 +249,12 @@ void clienteTCP(char *name, char *host, char *route)
 void clienteUDP(char *name, char *host, char *route)
 {
 	int i, errcode;
-	int retry = RETRIES;			/* holds the retry count */
 	int s;							/* socket descriptor */
 	long timevar;					/* contains time returned by time() */
 	struct sockaddr_in myaddr_in;	/* for local socket address */
 	struct sockaddr_in servaddr_in; /* for server socket address */
 	struct in_addr reqaddr;			/* for returned internet address */
-	int addrlen, n_retry;
+	int addrlen, n_retry = RETRIES;
 	struct sigaction vec;
 	char hostname[MAXHOST];
 	struct addrinfo hints, *res;
@@ -359,7 +357,7 @@ void clienteUDP(char *name, char *host, char *route)
 	// Escribir logica patatacaliente
 	// ##############################
 	char response[TAM_BUFFER];
-	while (fgets(buf, sizeof(buf), archivo) != NULL)
+	while ((fgets(buf, sizeof(buf), archivo) != NULL) | (n_retry == 0))
 	{
 
 		// Leer comando desde la terminal
@@ -380,11 +378,30 @@ void clienteUDP(char *name, char *host, char *route)
 			exit(1);
 		}
 
+		alarm(TIMEOUT);
+		/* Wait for the reply to come in. */
 		if (recvfrom(s, response, sizeof(response), 0, (struct sockaddr *)&servaddr_in, &addrlen) == -1)
 		{
-			printf("Unable to get response from");
-			exit(1);
+			if (errno == EINTR)
+			{
+				/* Alarm went off and aborted the receive.
+				 * Need to retry the request if we have
+				 * not already exceeded the retry limit.
+				 */
+				printf("attempt %d (retries %d).\n", n_retry, RETRIES);
+				n_retry--;
+			}
+			else
+			{
+				printf("Unable to get response from");
+				exit(1);
+			}
 		}
+		else
+		{
+			alarm(0);
+		}
+
 		// printf("%s", response); // recibimos msge y printeamos
 		if (strcmp(buf, "ADIOS\r\n") == 0)
 		{
