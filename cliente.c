@@ -365,7 +365,7 @@ void clienteUDP(char *name, char *host, char *route)
 	// Escribir logica patatacaliente
 	// ##############################
 	char response[TAM_BUFFER];
-	while ((fgets(buf, sizeof(buf), archivo) != NULL) | (n_retry == 0))
+	while ((fgets(buf, sizeof(buf), archivo) != NULL) && (n_retry > 0))
 	{
 
 		// Leer comando desde la terminal
