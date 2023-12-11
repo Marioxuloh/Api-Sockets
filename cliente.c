@@ -316,7 +316,6 @@ void clienteUDP(char *name, char *host, char *route)
 	 * that this program could easily be ported to a host
 	 * that does require it.
 	 */
-	printf("Connected to %s on port %u at %s", host, ntohs(myaddr_in.sin_port), (char *)ctime(&timevar));
 
 	/* Set up the server address. */
 	servaddr_in.sin_family = AF_INET;
@@ -353,7 +352,7 @@ void clienteUDP(char *name, char *host, char *route)
 		fprintf(stderr, "%s: unable to register the SIGALRM signal\n", name);
 		exit(1);
 	}
-
+	printf("Connected to %s on port %u at %s", host, ntohs(myaddr_in.sin_port), (char *)ctime(&timevar));
 	// Abrir el archivo
 	FILE *archivo = fopen(route_txt, "r");
 	if (archivo == NULL)
