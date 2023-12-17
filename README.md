@@ -1,1 +1,1 @@
-trabajo de clase sobre sockets codificados en lenguaje c usando tcp y udp
+Patata Caliente implementado con paso de mensajes entre socketsa UDP & TCP
